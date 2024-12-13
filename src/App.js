@@ -1,23 +1,121 @@
-import logo from './logo.svg';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 
 function App() {
+  const [logs, setLogs] = useState([]); // All logs
+  const [filteredLogs, setFilteredLogs] = useState([]); // Logs after filtering
+  const [severityFilter, setSeverityFilter] = useState("ALL");
+  const [searchKeyword, setSearchKeyword] = useState("");
+
+  // Fetch logs from the backend when the component mounts
+  useEffect(() => {
+    const fetchLogs = async () => {
+      try {
+        const response = await fetch("http://localhost:8000/api/logs");
+        const data = await response.json();
+        console.log("Fetched logs:", data); // Check if logs are fetched
+        setLogs(data.logs); // Set the fetched logs
+      } catch (error) {
+        console.error("Error fetching logs:", error);
+      }
+    };
+
+    fetchLogs();
+  }, []);
+
+  // Filter logs based on severity and search keyword
+  useEffect(() => {
+    setFilteredLogs(
+      logs.filter((log) => {
+        const matchesSeverity =
+          severityFilter === "ALL" || log.severity === severityFilter;
+        const matchesSearch =
+          searchKeyword === "" ||
+          log.message.toLowerCase().includes(searchKeyword.toLowerCase());
+
+        return matchesSeverity && matchesSearch;
+      })
+    );
+  }, [logs, severityFilter, searchKeyword]);
+
+  const handleSeverityFilterChange = (e) => {
+    setSeverityFilter(e.target.value);
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchKeyword(e.target.value);
+  };
+
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
+      <h1>ROS Log Viewer</h1>
+
+      {/* Filters */}
+      <div>
+        <label htmlFor="severity">Filter by Severity:</label>
+        <select
+          id="severity"
+          value={severityFilter}
+          onChange={handleSeverityFilterChange}
         >
-          Learn React
-        </a>
-      </header>
+          <option value="ALL">All</option>
+          <option value="DEBUG">DEBUG</option>
+          <option value="INFO">INFO</option>
+          <option value="WARN">WARN</option>
+          <option value="ERROR">ERROR</option>
+          <option value="FATAL">FATAL</option>
+        </select>
+      </div>
+
+      <div>
+        <label htmlFor="search">Search Logs:</label>
+        <input
+          type="text"
+          id="search"
+          value={searchKeyword}
+          onChange={handleSearchChange}
+          placeholder="Search by keyword"
+        />
+      </div>
+
+      {/* Displaying the parsed logs */}
+      <table>
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Severity</th>
+            <th>Node</th>
+            <th>Message</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filteredLogs.length === 0 ? (
+            <tr>
+              <td colSpan="4">No logs to display.</td>
+            </tr>
+          ) : (
+            filteredLogs.map((log, index) => (
+              <tr key={index}>
+                <td>{log.timestamp}</td>
+                <td
+                  style={{
+                    color:
+                      log.severity === "ERROR" || log.severity === "FATAL"
+                        ? "red"
+                        : log.severity === "WARN"
+                        ? "orange"
+                        : "black",
+                  }}
+                >
+                  {log.severity}
+                </td>
+                <td>{log.node}</td>
+                <td>{log.message}</td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }
