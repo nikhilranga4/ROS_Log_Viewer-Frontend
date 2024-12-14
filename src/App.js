@@ -11,7 +11,7 @@ function App() {
   useEffect(() => {
     const fetchLogs = async () => {
       try {
-        const response = await fetch("http://localhost:8000/api/logs");
+        const response = await fetch("https://ros-log-viewer-backend1.onrender.com/api/logs"); // Updated URL
         const data = await response.json();
         console.log("Fetched logs:", data); // Check if logs are fetched
         setLogs(data.logs); // Set the fetched logs
@@ -46,6 +46,19 @@ function App() {
     setSearchKeyword(e.target.value);
   };
 
+  // Function to download filtered logs as a new file
+  const downloadFilteredLogs = () => {
+    const blob = new Blob([JSON.stringify(filteredLogs, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "filtered_logs.json";
+    a.click();
+    URL.revokeObjectURL(url); // Clean up URL object
+  };
+
   return (
     <div className="App">
       <h1>ROS Log Viewer</h1>
@@ -76,6 +89,15 @@ function App() {
           onChange={handleSearchChange}
           placeholder="Search by keyword"
         />
+      </div>
+
+      {/* Download button */}
+      <div className="download-button-container">
+        <button 
+          onClick={downloadFilteredLogs} 
+          className="download-button">
+          Download Filtered Logs
+        </button>
       </div>
 
       {/* Displaying the parsed logs */}
