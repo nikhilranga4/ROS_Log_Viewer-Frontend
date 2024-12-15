@@ -6,6 +6,8 @@ function App() {
   const [filteredLogs, setFilteredLogs] = useState([]); // Logs after filtering
   const [severityFilter, setSeverityFilter] = useState("ALL");
   const [searchKeyword, setSearchKeyword] = useState("");
+  const [uploadError, setUploadError] = useState(""); // Error message for upload
+  const [uploadSuccess, setUploadSuccess] = useState(false); // Success message for upload
 
   // Fetch logs from the backend when the component mounts
   useEffect(() => {
@@ -59,9 +61,54 @@ function App() {
     URL.revokeObjectURL(url); // Clean up URL object
   };
 
+  // Handle file upload
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("https://ros-log-viewer-backend1.onrender.com/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to upload file");
+      }
+
+      const data = await response.json();
+      console.log("Uploaded logs:", data);
+      setLogs(data.logs); // Update logs with the uploaded file's content
+      setUploadError(""); // Clear any previous errors
+      setUploadSuccess(true); // Set success message
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      setUploadError(error.message || "Error uploading file");
+      setUploadSuccess(false); // Clear success message on error
+    }
+  };
+
   return (
     <div className="App">
       <h1>ROS Log Viewer</h1>
+
+      {/* File upload */}
+      <div className="upload-container">
+        <label htmlFor="file-upload" className="upload-label">Upload Log File (.log or .txt):</label>
+        <input
+          type="file"
+          id="file-upload"
+          accept=".log,.txt"
+          onChange={handleFileUpload}
+          className="upload-input"
+        />
+        {uploadError && <p className="error-message">{uploadError}</p>}
+        {uploadSuccess && <p className="success-message">File uploaded successfully!</p>}
+      </div>
 
       {/* Filters */}
       <div>
